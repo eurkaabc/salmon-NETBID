@@ -218,6 +218,7 @@ After running this step, you should have:
 
 Once all samples have been quantified with Salmon, we need to organize the results into a format that can be easily imported into **R** (e.g., with `tximport` for NETBID2).
 
+## 🔧 Prepare quantification outputs
 ```bash
 # Define project paths
 RDIR="$PROJECT_ROOT/3.R_analysis"
@@ -247,28 +248,40 @@ cd "$RDIR"
 unzip -o quant.sf.zip
 ```
 
+
+
+## 🧩 Build tx2gene.csv mapping file
+
+Depending on whether your quant.sf transcript IDs retain version numbers (e.g., ENSMUST00000193812.1) or not, generate a matching tx2gene.csv.
+
+
+## A) Keep version numbers (default if `quant.sf` has them):
 ```bash
-CDNA="/mnt/sda/Public/Database/salmon_usage/gencode.vM23.transcripts.fa.gz"   #（选择自己对应的）
+CDNA="/mnt/sda/Public/Database/salmon_usage/gencode.vM23.transcripts.fa.gz"
 RDIR="$PROJECT_ROOT/3.R_analysis"
 
-#根据自己所需调整需不需要版本号，此处范例quant.sf中保留了版本号所以需要保留
 zgrep '^>' "$CDNA" \
 | awk -F'|' 'BEGIN{OFS=","; print "transcript","gene"}{
-  tx=$1; g=$2; sub(/^>/,"",tx);  # 保留版本号
-  sub(/^>/,"",g);  # 保留基因的版本号
+  tx=$1; g=$2; sub(/^>/,"",tx);   # keep version
+  sub(/^>/,"",g);                 # keep gene version
   print tx,g
 }' > "$RDIR/tx2gene.csv"
 
 head "$RDIR/tx2gene.csv"
+
 ```
 
 
-去除版本号的版本
+## B) Remove version numbers (if `quant.sf` lacks them):
 ```bash
+
+CDNA="/mnt/sda/Public/Database/salmon_usage/gencode.vM23.transcripts.fa.gz"
+RDIR="$PROJECT_ROOT/3.R_analysis"
+
 zgrep '^>' "$CDNA" \
 | awk -F'|' 'BEGIN{OFS=","; print "transcript","gene"}{
   tx=$1; g=$2; sub(/^>/,"",tx);         # ENSMUST... .xx
-  sub(/\..*$/,"",tx); sub(/\..*$/,"",g) # 去版本号
+  sub(/\..*$/,"",tx); sub(/\..*$/,"",g) # strip version
   print tx,g
 }' > "$RDIR/tx2gene.csv"
 
@@ -277,7 +290,21 @@ head "$RDIR/tx2gene.csv"
 ```
 
 
+## ✅ Expected Outputs
+
+After this step, you should have:
+| File / Folder                | Description                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| `3.R_analysis/quant.sf.zip`  | Archive of all `quant.sf` files (backup/sharing).                           |
+| `3.R_analysis/sampleFile`    | List of sample names (one per line).                                        |
+| `3.R_analysis/salmon.output` | Mapping of `sample → quant.sf` file path (used by `tximport` / NetBID2).    |
+| `3.R_analysis/tx2gene.csv`   | Transcript-to-gene mapping (with or without version numbers, as generated). |
+
+
+
+
 <img width="6256" height="4167" alt="image" src="https://github.com/user-attachments/assets/fea832e0-f2b2-42e2-a966-9d0be8072c86" />
+
 
 
 
