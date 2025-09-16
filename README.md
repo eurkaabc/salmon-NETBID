@@ -1,6 +1,6 @@
-# Salmon-NETBID2 Workflow
+## 🧬 Salmon-NETBID2 Workflow
 
-## Introduction
+## 📖 Introduction
 
 **Salmon** is a fast and efficient tool for transcript quantification from RNA-seq data.  
 It requires a set of target transcripts (either from a reference genome annotation or from a de-novo assembly) to quantify.  
@@ -20,18 +20,26 @@ In this workflow, we assume that the **raw FASTQ files** are stored in:
 
 <img width="658" height="428" alt="image" src="https://github.com/user-attachments/assets/9e9eaea0-eac8-4cab-96e9-2a3e18d32999" />
 
-## Installation
+## ⚙️ Installation
 
+Make sure you have conda installed, then install Salmon via Bioconda:
+```bash
+conda install --channel bioconda salmon
+
+```
 ##
 
-## Step 0. 整理FASTQ 
+## 📂 Step 0. Organize FASTQ Files
 ```bash
 #
 mkdir -p "/mnt/sda/Public/Project/collabration/AoLab/20250821/1.data"
 find "/mnt/sda/Public/Project/collabration/AoLab/20250821/rawdata" -type f -name "*.fastq.gz" -exec cp -n {} "/mnt/sda/Public/Project/collabration/AoLab/20250821/1.data/" \;
 ```
 
-## 🧪 Step 1. Build Salmon Index (Mouse GRCm38, Gencode vM23)
+## 🧪 Step 1. Build Salmon Index
+**Choose the index according to your species and annotation source:**
+<details> <summary><strong>Option A: Mouse GRCm38 (GENCODE vM23)</strong></summary>
+
 ```bash
 cd /mnt/sda/Public/Database/salmon_usage
 
@@ -52,7 +60,13 @@ cat gencode.vM23.transcripts.fa.gz GRCm38.primary_assembly.genome.fa.gz > gentro
 # 5. Build the Salmon index
 salmon index -t gentrome.fa.gz -d decoys.txt -p 12 -i salmon_M38_index --gencode
 ```
-## Step 1 (Alternative). Build Salmon Index (Mouse GRCm39, Ensembl Release 115)
+</details>
+
+
+
+
+<details> <summary><strong>Option B: Mouse GRCm39 (Ensembl Release 115)</strong></summary>
+  
 ```bash
 cd /mnt/sda/Public/Database/salmon_usage
 
@@ -60,7 +74,7 @@ cd /mnt/sda/Public/Database/salmon_usage
 wget ftp://ftp.ensembl.org/pub/release-115/fasta/mus_musculus/cdna/Mus_musculus.GRCm39.cdna.all.fa.gz
 wget ftp://ftp.ensembl.org/pub/release-115/fasta/mus_musculus/dna/Mus_musculus.GRCm39.dna.primary_assembly.fa.gz
 
-# 2. Define file paths and output directory
+# 2. Define paths
 CDNA="/mnt/sda/Public/Database/salmon_usage/Mus_musculus.GRCm39.cdna.all.fa.gz"
 GENOME="/mnt/sda/Public/Database/salmon_usage/Mus_musculus.GRCm39.dna.primary_assembly.fa.gz"
 INDEX_DIR="/home/Weixin.Zhang/rnaseq_index/salmon_M39_index"
@@ -72,19 +86,41 @@ cd "$(dirname "$INDEX_DIR")"
 # 3. Generate decoy list
 zgrep -h '^>' "$GENOME" | cut -d ' ' -f1 | sed 's/^>//' > decoys.txt
 
-# 4. Build gentrome (cDNA + genome)
+# 4. Build gentrome 
 cat <(zcat "$CDNA") <(zcat "$GENOME") | gzip -c > gentrome.fa.gz
 
 # 5. Build the Salmon index
 salmon index -t gentrome.fa.gz -d decoys.txt -i "$INDEX_DIR" -k 31 -p "$THREADS" > salmon_index.log 2>&1
 ```
+</details>
+
+
+<details> <summary><strong>Option C: Human GENCODE v45</strong></summary>
+
+Note: Build a Salmon index using GENCODE v45 human transcriptome (no decoy-aware mode in this example).
+```bash
+cd /mnt/sda/Public/Database/salmon_usage
+mkdir human_gencode_v45
+wget -c https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_45/gencode.v45.transcripts.fa.gz
+
+salmon index \
+  -i human_gencode_v45 \
+  -t gencode.v45.transcripts.fa.gz \
+  --gencode \
+  -k 31 \
+  -p 8
+```
+</details>
+
+
+
 
 
 ## 🧪 Step 2. Salmon Quantification (Batch, Paired-End)
 
-Quantify all paired-end FASTQ samples under your project.  
-This script auto-detects library type (`-l A`), enables recommended bias corrections, and writes a per-sample summary.
+This step runs Salmon quantification across all paired-end FASTQ samples, producing per-sample `quant.sf` expression files and a summary table of mapping statistics.
 
+This script auto-detects library type (`-l A`), enables recommended bias corrections, and writes a per-sample summary.
 > **Prerequisites**
 > - Salmon installed (see Step 1)
 > - `jq` for parsing `meta_info.json`  
@@ -166,6 +202,16 @@ echo "[INFO] Summary written to: $SUMMARY_TSV"
 echo "[INFO] Preview:"
 column -t -s $'\t' "$SUMMARY_TSV"
 ```
+## ✅ Expected Outputs
+
+After running this step, you should have:
+
+| File / Folder                              | Description                                         |
+| ------------------------------------------ | --------------------------------------------------- |
+| `2.salmon/<sample>/quant.sf`               | Transcript-level quantification results             |
+| `2.salmon/<sample>/aux_info/meta_info.json`| Mapping statistics (used for summary)               |
+| `2.salmon/percent_mapped_summary.tsv`      | Summary table (sample name, mapping %, counts, etc.)|
+
 
 
 ## 📊 Step 3. Prepare Files for R Analysis
