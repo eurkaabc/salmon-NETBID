@@ -21,6 +21,9 @@ In this workflow, we assume that the **raw FASTQ files** are stored in:
 <img width="658" height="428" alt="image" src="https://github.com/user-attachments/assets/9e9eaea0-eac8-4cab-96e9-2a3e18d32999" />
 
 ## Installation
+
+##
+
 ## Step 0. 整理FASTQ 
 ```bash
 #
@@ -164,4 +167,357 @@ echo "[INFO] Preview:"
 column -t -s $'\t' "$SUMMARY_TSV"
 ```
 
+
+## 📊 Step 3. Prepare Files for R Analysis
+
+Once all samples have been quantified with Salmon, we need to organize the results into a format that can be easily imported into **R** (e.g., with `tximport` for NETBID2).
+
+```bash
+# Define project paths
+RDIR="$PROJECT_ROOT/3.R_analysis"
+mkdir -p "$RDIR"
+
+QUANTS_DIR="${PROJECT_ROOT}/2.salmon"
+
+# Move into the Salmon quantification directory
+cd "$QUANTS_DIR"
+
+# 1. Compress all quant.sf files into one archive (for backup or sharing)
+zip "$RDIR/quant.sf.zip" $(find . -name quant.sf)
+
+# 2. List all sample folder names that contain quant.sf
+for q in */quant.sf; do
+  basename "$(dirname "$q")"
+done | sort > "$RDIR/sampleFile"
+
+# 3. Generate salmon.output (mapping sample → quant.sf path)
+awk -v QUANTS_DIR="$QUANTS_DIR" '{printf "%s\t%s/%s/quant.sf\n",$1,QUANTS_DIR,$1}' "$RDIR/sampleFile" > "$RDIR/salmon.output"
+
+echo "[INFO] R analysis files written to: $RDIR"
+ls -lh "$RDIR"
+
+# 4. (Optional) unzip the archive inside the R analysis directory
+cd "$RDIR"
+unzip -o quant.sf.zip
+```
+
+```bash
+CDNA="/mnt/sda/Public/Database/salmon_usage/gencode.vM23.transcripts.fa.gz"   #（选择自己对应的）
+RDIR="$PROJECT_ROOT/3.R_analysis"
+
+#根据自己所需调整需不需要版本号，此处范例quant.sf中保留了版本号所以需要保留
+zgrep '^>' "$CDNA" \
+| awk -F'|' 'BEGIN{OFS=","; print "transcript","gene"}{
+  tx=$1; g=$2; sub(/^>/,"",tx);  # 保留版本号
+  sub(/^>/,"",g);  # 保留基因的版本号
+  print tx,g
+}' > "$RDIR/tx2gene.csv"
+
+head "$RDIR/tx2gene.csv"
+```
+
+
+去除版本号的版本
+```bash
+zgrep '^>' "$CDNA" \
+| awk -F'|' 'BEGIN{OFS=","; print "transcript","gene"}{
+  tx=$1; g=$2; sub(/^>/,"",tx);         # ENSMUST... .xx
+  sub(/\..*$/,"",tx); sub(/\..*$/,"",g) # 去版本号
+  print tx,g
+}' > "$RDIR/tx2gene.csv"
+
+head "$RDIR/tx2gene.csv"
+
+```
+
+
 <img width="6256" height="4167" alt="image" src="https://github.com/user-attachments/assets/fea832e0-f2b2-42e2-a966-9d0be8072c86" />
+
+
+
+
+## 
+
+```bash
+# ---- Load necessary libraries ----
+suppressPackageStartupMessages({
+  library(readr)
+  library(dplyr)
+  library(NetBID2)
+  library(Biobase)
+  library(edgeR)
+})
+
+# ---- Define Paths ----
+project_dir <- "/mnt/sda/Public/Project/collabration/AoLab/20250821"  # **Modify this path if needed**
+salmon_dir  <- file.path(project_dir, "2.salmon")
+rdir        <- file.path(project_dir, "3.R_analysis")
+
+# ---- Set working directory ----
+setwd(rdir)  # **Set to R analysis directory**
+
+# ---- Create directories if they do not exist ----
+dir.create(rdir, showWarnings = FALSE, recursive = TRUE)
+
+# ---- Sample table (already prepared) ----
+sampleFile <- "sampleFile"
+samples <- readLines(sampleFile)
+
+# ---- Template metadata (fill WT/KO later) ----
+coldata <- data.frame(
+  sample = samples,
+  group  = NA_character_,   # **Fill with WT/KO (or your groups)**
+  stringsAsFactors = FALSE
+)
+write.csv(coldata, "sample_metadata.template.csv", row.names = FALSE)
+
+# ---- Load completed metadata ----
+meta <- read.csv(file.path(rdir, "sample_metadata.csv"), stringsAsFactors = FALSE)
+rownames(meta) <- meta$sample
+
+# ---- tx2gene (match your quant.sf: keep version if quant.sf has version) ----
+tx2 <- read.csv(file.path(rdir, "tx2gene.csv"),
+                header = FALSE, stringsAsFactors = FALSE)
+names(tx2) <- c("TXNAME","GENEID")
+
+```
+
+## Stage I: Load & Mapping
+
+
+```bash
+# ---- 1) 读入 gene-level eSet ----
+eSet_expGene <- load.exp.RNASeq.demoSalmon(
+  salmon_dir         = salmon_dir,
+  tx2gene            = tx2,            # 或者传文件路径字符串
+  use_phenotype_info = meta,
+  use_sample_col     = "sample",
+  use_design_col     = "group",
+  merge_level        = "gene",
+  return_type        = "eset"
+)
+saveRDS(eSet_expGene, file.path(rdir, "Gene.eset.rawcounts.rds"))
+cat("[OK] eSet维度: ", paste(dim(eSet_expGene), collapse=" x "), "\n", sep="")
+
+# ---- 2) 基因ID -> 基因名（mgi_symbol 优先）----
+transfer_tab <- get_IDtransfer2symbol2type(
+  from_type      = "ensembl_gene_id",
+  dataset        = "hsapiens_gene_ensembl",   # ← 改成 Human
+  use_level      = "gene",
+  ignore_version = TRUE
+)
+to_col <- if ("hgnc_symbol" %in% colnames(transfer_tab)) "hgnc_symbol" else "external_gene_name"
+
+suppressPackageStartupMessages({
+  library(Biobase)
+  library(NetBID2)
+  library(dplyr)
+})
+
+## A) 去版本号 + 保证唯一
+old_fn   <- featureNames(eSet_expGene)
+fn_nov   <- sub("\\.\\d+$","", old_fn)
+fn_nov_u <- make.unique(fn_nov, sep = ".dup")
+featureNames(eSet_expGene) <- fn_nov_u
+
+## B) 同步 featureData
+fd <- data.frame(ensembl_gene_id = fn_nov,
+                 row.names = fn_nov_u,
+                 stringsAsFactors = FALSE)
+featureData(eSet_expGene) <- new("AnnotatedDataFrame", data = fd)
+
+## C) 执行映射与合并
+eSet_expGene2 <- update_eset.feature(
+  use_eset         = eSet_expGene,
+  use_feature_info = transfer_tab,
+  from_feature     = "ensembl_gene_id",
+  to_feature       = to_col,
+  merge_method     = "median"
+)
+
+saveRDS(eSet_expGene2, file.path(rdir, "Gene.eset.mapped.rds"))
+cat("[OK] 映射后维度: ", paste(dim(eSet_expGene2), collapse=" x "), "\n", sep="")
+
+```
+
+
+## Stage II: QC + Save
+```bash
+# 初始化 network.par
+network.par <- list()
+
+# 设置 QC 输出目录
+network.par$out.dir.QC <- file.path(rdir, "QC")
+dir.create(network.par$out.dir.QC, showWarnings = FALSE, recursive = TRUE)
+
+# 把映射好的 eSet 放进去
+network.par$net.eset <- eSet_expGene2
+all(colnames(exprs(eSet_expGene2)) == meta$sample)
+
+meta <- meta[match(colnames(exprs(eSet_expGene2)), meta$sample), ]
+
+# QC (intgroup 需要对应你的 meta 列，这里假设是 "group")
+draw.eset.QC(
+  network.par$net.eset,
+  outdir          = network.par$out.dir.QC,
+  intgroup        = "group",
+  do.logtransform = FALSE,
+  prefix          = "beforeQC_",
+  generate_html   = FALSE
+)
+
+# 定义保存目录（比如就放在 rdir 里）
+network.par$out.dir.DATA <- rdir
+dir.create(network.par$out.dir.DATA, showWarnings = FALSE, recursive = TRUE)
+
+# 保存
+NetBID.saveRData(network.par = network.par, step = "exp-load")
+```
+
+## Stage III: Normalization######
+
+```bash
+# 取表达矩阵
+mat <- exprs(network.par$net.eset)
+
+# 去掉低表达基因（90% 样本低于 5%分位数）
+choose1 <- apply(mat <= quantile(mat, probs = 0.05), 1, sum) <= ncol(mat) * 0.90
+cat("[FILTER] 低表达基因过滤结果:\n")
+print(table(choose1))
+
+mat <- mat[choose1, ]
+
+# 更新 eSet
+net_eset <- generate.eset(
+  exp_mat        = mat,
+  phenotype_info = pData(network.par$net.eset)[colnames(mat), ],
+  feature_info   = fData(network.par$net.eset)[rownames(mat), ],
+  annotation_info= annotation(network.par$net.eset)
+)
+
+# 更新 network.par
+network.par$net.eset <- net_eset
+
+# QC after normalization
+draw.eset.QC(
+  network.par$net.eset,
+  outdir          = network.par$out.dir.QC,
+  intgroup        = "group",   # ⚠️ 这里用你的 meta 中的分组列，比如 "group"
+  do.logtransform = FALSE,
+  prefix          = "afterQC_",
+  generate_html   = FALSE
+)
+
+# 保存
+NetBID.saveRData(network.par = network.par, step = "exp-QC")
+
+
+# (Optional) 样本聚类检查
+
+
+intgroup <- "group"  # 这里同样要对应 meta 的列名
+mat <- exprs(network.par$net.eset)
+
+# 用 IQR 过滤高变基因
+choose1 <- IQR.filter(exp_mat=mat, use_genes=rownames(mat), thre=0.8)
+cat("[FILTER] 高变基因过滤结果:\n")
+print(table(choose1))
+
+mat <- mat[choose1, ]
+
+# K-means 聚类 vs 原始标签
+pred_label <- draw.emb.kmeans(
+  mat       = mat,
+  all_k     = NULL,
+  obs_label = get_obs_label(pData(network.par$net.eset), intgroup),
+  pre_define= c('WNT'='blue','SHH'='red','Group3'='yellow','Group4'='green','n/a (NORM)'='grey')
+)
+```
+
+```bash
+## Stage III: Prepare SJARACNe input (Mouse)############
+
+# 1) 加载数据库 (小鼠 TF/SIG)
+db.preload(use_level = 'gene', use_spe = 'mouse', update = FALSE)
+
+# 2) 转换 gene ID → TF/SIG 列表
+# ⚠️ 如果 fData 里是基因符号就用 external_gene_name；如果是 ENSMUSG... 就用 ensembl_gene_id
+use_gene_type <- 'external_gene_name'   # 或 'ensembl_gene_id'，根据你的数据来改
+use_genes     <- rownames(fData(network.par$net.eset))
+use_list      <- get.TF_SIG.list(use_genes, use_gene_type = use_gene_type)
+
+# 3) 选择要用的样本
+phe <- pData(network.par$net.eset)
+use.samples <- rownames(phe)   # 默认用所有样本
+
+# 4) 设置项目名
+if (is.null(network.par$project.name)) {
+  network.par$project.name <- "MyMouseProject"
+}
+prj.name <- network.par$project.name
+
+# 5) 设置 SJARACNe 输出目录
+network.par$out.dir.SJAR <- file.path(rdir, "SJARACNe")
+dir.create(network.par$out.dir.SJAR, showWarnings = FALSE, recursive = TRUE)
+
+# 6) 生成 SJARACNe 输入文件
+SJAracne.prepare(
+  eset              = network.par$net.eset,
+  use.samples       = use.samples,
+  TF_list           = use_list$tf,
+  SIG_list          = use_list$sig,
+  IQR.thre          = 0.5,
+  IQR.loose_thre    = 0.1,
+  SJAR.project_name = prj.name,
+  SJAR.main_dir     = network.par$out.dir.SJAR
+)
+```
+## 🔗 Step 4. Run SJARACNe for Network Inference
+
+We use **SJARACNe** to construct regulatory networks (TF network and signature network).  
+Make sure you have:
+
+- `input.exp` → expression matrix (rows = genes, columns = samples; tab-delimited; first column = gene IDs)  
+- `tf.txt` → list of transcription factors (one per line, matching IDs in `input.exp`)  
+- `sig.txt` → list of signature genes (one per line, matching IDs in `input.exp`)  
+
+
+```bash
+cd /mnt/sda/Public/Project/collabration/AoLab/20250821/3.R_analysis/SJARACNe/MyMouseProject
+# 1) 确认共识脚本存在且可执行（避免 cwl 最后一步 Permission denied）
+CONS=$(python - <<'PY'
+import os, glob, SJARACNe
+base = os.path.dirname(SJARACNe.__file__)
+cands = glob.glob(os.path.join(base, "**", "create_consensus_network.py"), recursive=True)
+print(cands[0] if cands else "")
+PY
+)
+echo "consensus script: $CONS"
+# 2) 清理旧产物并创建临时目录
+rm -rf output_tf /tmp/tmp_tf
+
+# 3) 直接运行 SJARACNe（自动完成 bootstrap + consensus）
+#    这些参数就是你跑成功使用的参数
+sjaracne local \
+  -e "$PWD/input.exp" \
+  -g "$PWD/tf.txt" \
+  -o output_tf \
+  -tmp /tmp/tmp_tf
+
+
+sjaracne local \
+  -e "$PWD/input.exp" \
+  -g "$PWD/sig.txt" \
+  -o output_sig \
+  -tmp /tmp/tmp_sig
+
+
+# 4) 验证结果是否生成
+ls -lh output_tf | grep -i consensus
+# 期望看到：output_tf/consensus_network_ncol_.txt
+```
+
+
+
+
+
