@@ -66,6 +66,7 @@ devtools::install_github("jyyulab/NetBID")              # latest
 - [🗂️ Step 3. Prepare Files for R Analysis](#step-3)
   - [🧩 Build tx2gene.csv mapping file](#build-tx2gene)   <!-- 可选，见下 -->
 - [🧠 Step 4. Load in R & Gene ID Mapping](#step-4)
+- [📤 Step 4.5 Export matrices (counts/CPM/TPM) — ready for DESeq2 & downstream](#step-4.5)
 - [🕸️ Step 5. Run SJARACNe for Network Inference (Server)](#step-5)
 - [🧭 Step 6. NetBID2 Hidden Driver Estimation](#step-6)
 - [🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table](#step-7)
@@ -590,6 +591,130 @@ print(file.path(network.par$out.dir.SJAR, prj.name))
 print(list.files(file.path(network.par$out.dir.SJAR, prj.name), recursive = TRUE))
 
 ```
+
+<a id="step-4.5"></a>
+
+### 📤 Step 4.5 Export matrices (counts/CPM/TPM) — ready for DESeq2 & downstream
+```bash
+## =========================
+## Export counts / CPM / TPM (CSV, annotated)
+## =========================
+
+suppressPackageStartupMessages({
+  library(NetBID2)
+  library(edgeR)
+  library(Biobase)
+})
+
+## --- config (edit species as needed) ---
+species_dataset <- "mmusculus_gene_ensembl"   # use "hsapiens_gene_ensembl" for human
+export_dir <- file.path(rdir, "EXPORT_mats")
+dir.create(export_dir, showWarnings = FALSE, recursive = TRUE)
+
+## --- helper: strip transcript/gene version suffixes like ".1" ---
+strip_version <- function(x) sub("\\.\\d+$", "", x)
+
+## --- annotation table from biomaRt (NetBID2 helper) ---
+transfer_tab <- get_IDtransfer2symbol2type(
+  from_type      = "ensembl_gene_id",
+  dataset        = species_dataset,
+  use_level      = "gene",
+  ignore_version = TRUE
+)
+## add a no-version key for robust joins
+if (!"ensembl_gene_id_nov" %in% colnames(transfer_tab) && "ensembl_gene_id" %in% colnames(transfer_tab)) {
+  transfer_tab$ensembl_gene_id_nov <- strip_version(transfer_tab$ensembl_gene_id)
+}
+
+## choose symbol column with sensible priority
+sym_col <- if ("mgi_symbol" %in% colnames(transfer_tab)) {
+  "mgi_symbol"
+} else if ("hgnc_symbol" %in% colnames(transfer_tab)) {
+  "hgnc_symbol"
+} else {
+  "external_gene_name"
+}
+keep_ann_cols <- intersect(c(sym_col, "external_gene_name", "gene_biotype"), colnames(transfer_tab))
+
+## --- function to get matrices safely via NetBID2 (with fallbacks) ---
+get_mat_safe <- function(rt) {
+  ## try NetBID2's native loader first
+  tryCatch({
+    load.exp.RNASeq.demoSalmon(
+      salmon_dir         = salmon_dir,
+      tx2gene            = tx2,
+      use_phenotype_info = meta,
+      use_sample_col     = "sample",
+      use_design_col     = "group",
+      merge_level        = "gene",
+      return_type        = rt
+    )
+  }, error = function(e) {
+    message("[WARN] return_type='", rt, "' via NetBID2 failed: ", conditionMessage(e))
+    if (rt == "cpm") {
+      ## fallback: compute CPM from counts
+      cnt <- get_mat_safe("counts")
+      edgeR::cpm(cnt, log = FALSE)
+    } else if (rt == "tpm") {
+      ## fallback: use tximport for TPM
+      if (!requireNamespace("tximport", quietly = TRUE))
+        stop("TPM fallback needs the 'tximport' package. Please install it.")
+      ## build quant.sf map from your salmon_dir + metadata samples
+      files <- setNames(file.path(salmon_dir, meta$sample, "quant.sf"), meta$sample)
+      if (!all(file.exists(files))) {
+        bad <- names(files)[!file.exists(files)]
+        stop("Missing quant.sf for samples: ", paste(bad, collapse = ", "))
+      }
+      txi <- tximport::tximport(files, type = "salmon", tx2gene = tx2,
+                                countsFromAbundance = "no", ignoreTxVersion = TRUE)
+      tpm <- txi$abundance
+      ## ensure column order matches metadata
+      tpm[, meta$sample, drop = FALSE]
+    } else {
+      stop(e)
+    }
+  })
+}
+
+## --- fetch matrices (genes x samples) ---
+counts_mat <- get_mat_safe("counts")
+cpm_mat    <- get_mat_safe("cpm")
+tpm_mat    <- get_mat_safe("tpm")
+
+## --- annotate + write CSV (match by Ensembl no-version, keep original rownames) ---
+annotate_and_write <- function(mat, out_name) {
+  original_id <- rownames(mat)
+  id_nov      <- strip_version(original_id)
+
+  ann_idx <- match(id_nov, transfer_tab$ensembl_gene_id_nov)
+  ann_df  <- if (length(keep_ann_cols)) transfer_tab[ann_idx, keep_ann_cols, drop = FALSE] else NULL
+
+  out <- cbind(
+    data.frame(
+      original_id      = original_id,            # original rownames (may contain version)
+      ensembl_gene_id  = id_nov,                 # version-stripped Ensembl gene ID
+      stringsAsFactors = FALSE
+    ),
+    ann_df,
+    as.data.frame(mat, check.names = FALSE)
+  )
+  write.csv(out, file.path(export_dir, out_name), row.names = FALSE)
+  invisible(TRUE)
+}
+
+annotate_and_write(counts_mat, "counts.gene.csv")
+annotate_and_write(cpm_mat,    "CPM.gene.csv")
+annotate_and_write(tpm_mat,    "TPM.gene.csv")
+
+message("[OK] Wrote CSVs to: ", export_dir)
+```
+
+
+
+
+
+
+
 <a id="step-5"></a>
 ## 🕸️ Step 5. Run SJARACNe for Network Inference (Server)
 
@@ -1161,7 +1286,9 @@ draw.bubblePlot(
 - **Need**: `driver_list`, `DE`, `target_list`.
 
 - **Outputs**: PDFs in `04_gsea_driver/`,` 07_network/`,` 08_category/`.
+
 ```bash
+
 use_driver <- driver_list[1]   # pick the top one (or set manually)
 
 ## GSEA (classic)
@@ -1224,3 +1351,6 @@ draw.categoryValue(
   pdf_file      = p("category", sprintf("categoryValue_%s.pdf", COMP))
 )
 ```
+
+
+
