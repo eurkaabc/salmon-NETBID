@@ -621,6 +621,10 @@ ls -lh output_sig | grep -i consensus || echo "[ERR] SIG consensus missing"
 | `.../MyMouseProject/output_sig/consensus_*` | Consensus signature network edge list        |
 
 
+<img width="6256" height="4167" alt="image" src="https://github.com/user-attachments/assets/fea832e0-f2b2-42e2-a966-9d0be8072c86" />
+### 🗺️ NetBID2 Analysis Overview
+*Covers Steps 6–8: activity estimation, DE/DA + master table, and downstream plots (Volcano, GSEA, Bubble, TargetNet, Category).*
+
 <a id="step-6"></a>
 ## 🧭 Step 6. NetBID2 Hidden Driver Estimation
 **Tip**: set an environment variable once and forget about editing paths later:
@@ -741,7 +745,7 @@ NetBID.saveRData(analysis.par = analysis.par, step = "act-get")
 
 ```
 
-<img width="6256" height="4167" alt="image" src="https://github.com/user-attachments/assets/fea832e0-f2b2-42e2-a966-9d0be8072c86" />
+
 
 <a id="step-7"></a>
 ## 🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table
