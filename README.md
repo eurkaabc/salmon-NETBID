@@ -31,23 +31,13 @@ conda install --channel bioconda salmon
 ## Table of Contents
 - [🧬 Step 1. Build Salmon Index](#-step-1-build-salmon-index)
 - [🔬 Step 2. Salmon Quantification (Batch, Paired-End)](#-step-2-salmon-quantification-batch-paired-end)
-- [🗂️ Step 3. Prepare Files for R Analysis](#-step-3-prepare-files-for-r-analysis)
-  - [🧩 Build tx2gene.csv mapping file](#-build-tx2genecsv-mapping-file)
-- [🧠 Step 4. Load in R & Gene ID Mapping](#-step-4-load-in-R--gene-id-mapping)
-- [🕸️ Step 5. Run SJARACNe for Network Inference (Server)](#-step-5-run-sjaracne-for-network-inference-server)
-- [🧭 Step 6. NetBID2 Hidden Driver Estimation](#-step-6-netbid2-hidden-driver-estimation)
-- [🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table](#-step-7-differential-expressionactivity-ko-vs-wt--master-table)
-- [🚀 Step 8. Advanced Analysis (Volcano, GSEA, Enrichment, Heatmaps & Network)](#-step-8-advanced-analysis-volcano-gsea-enrichment-heatmaps--network)
-
-- [🧬 Step 1. Build Salmon Index](#step-1-build-salmon-index)
-- [🔬 Step 2. Salmon Quantification (Batch, Paired-End)](#step-2-salmon-quantification-batch-paired-end)
 - [🗂️ Step 3. Prepare Files for R Analysis](#step-3-prepare-files-for-r-analysis)
   - [🧩 Build tx2gene.csv mapping file](#build-tx2genecsv-mapping-file)
 - [🧠 Step 4. Load in R & Gene ID Mapping](#step-4-load-in-r--gene-id-mapping)
 - [🕸️ Step 5. Run SJARACNe for Network Inference (Server)](#step-5-run-sjaracne-for-network-inference-server)
-- [🧭 Step 6. NetBID2 Hidden Driver Estimation](#step-6-netbid2-hidden-driver-estimation)
-- [🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table](#step-7-differential-expressionactivity-ko-vs-wt--master-table)
-- [🚀 Step 8. Advanced Analysis (Volcano, GSEA, Enrichment, Heatmaps & Network)](#step-8-advanced-analysis-volcano-gsea-enrichment-heatmaps--network)
+- [🧭 Step 6. NetBID2 Hidden Driver Estimation](#-step-6-netbid2-hidden-driver-estimation)
+- [🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table](#-step-7-differential-expressionactivity-ko-vs-wt--master-table)
+- [🚀 Step 8. Advanced Analysis (Volcano, GSEA, Enrichment, Heatmaps & Network)](#-step-8-advanced-analysis-volcano-gsea-enrichment-heatmaps--network)
 
 ## 📂 Step 0. Organize FASTQ Files
 ```bash
