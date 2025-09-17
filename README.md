@@ -28,6 +28,27 @@ conda install --channel bioconda salmon
 
 ```
 ## Table of Contents
+## Table of Contents
+- [📘 Introduction](#-introduction)
+- [🛠️ Installation](#-installation)
+- [📦 Step 0. Organize FASTQ Files](#-step-0-organize-fastq-files)
+- [🧪 Step 1. Build Salmon Index](#-step-1-build-salmon-index)
+- [💉 Step 2. Salmon Quantification (Batch, Paired-End)](#-step-2-salmon-quantification-batch-paired-end)
+- [📁 Step 3. Prepare Files for R Analysis](#-step-3-prepare-files-for-r-analysis)
+  - [🧰 Prepare quantification outputs](#-prepare-quantification-outputs)
+  - [🅰️ Keep version (if quant.sf IDs like ENSMUST00000193812.1)](#-a-keep-version-if-quantsf-ids-like-ensmust000001938121)
+  - [🅱️ Remove version (if quant.sf lacks them)](#-b-remove-version-if-quantsf-lacks-them)
+- [💫 Step 4. Load in R & Gene ID Mapping](#-step-4-load-in-r--gene-id-mapping)
+  - [Stage I: Load & Mapping](#stage-i-load--mapping)
+  - [Stage II: QC + Save](#stage-ii-qc--save)
+  - [Stage III: Normalization](#stage-iii-normalization)
+  - [Stage IV: Prepare SJARACNe input (Mouse)](#stage-iv-prepare-sjaracne-input-mouse)
+- [🕸️ Step 5. Run SJARACNe for Network Inference (Server)](#-step-5-run-sjaracne-for-network-inference-server)
+- [🧭 Step 6. NetBID2 Hidden Driver Estimation](#-step-6-netbid2-hidden-driver-estimation)
+- [🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table](#-step-7-differential-expressionactivity-ko-vs-wt--master-table)
+- [🚀 Step 8. Advanced Analysis (Volcano, GSEA, Enrichment, Heatmaps & Network)](#-step-8-advanced-analysis-volcano-gsea-enrichment-heatmaps--network)
+
+
 - [🧬 Step 1. Build Salmon Index](#-step-1-build-salmon-index)
 - [🔬 Step 2. Salmon Quantification (Batch, Paired-End)](#-step-2-salmon-quantification-batch-paired-end)
 - [🗂️ Step 3. Prepare Files for R Analysis](#-step-3-prepare-files-for-r-analysis)
@@ -263,7 +284,7 @@ unzip -o quant.sf.zip
 Depending on whether your quant.sf transcript IDs retain version numbers (e.g., ENSMUST00000193812.1) or not, generate a matching tx2gene.csv.
 
 
-## A) Keep version (if `quant.sf` IDs like `ENSMUST00000193812.1`):
+### A) Keep version (if `quant.sf` IDs like `ENSMUST00000193812.1`):
 ```bash
 CDNA="/mnt/sda/Public/Database/salmon_usage/gencode.vM23.transcripts.fa.gz"
 RDIR="$PROJECT_ROOT/3.R_analysis"
@@ -280,7 +301,7 @@ head "$RDIR/tx2gene.csv"
 ```
 
 
-## B) Remove version (if `quant.sf` lacks them):
+### B) Remove version (if `quant.sf` lacks them):
 ```bash
 
 CDNA="/mnt/sda/Public/Database/salmon_usage/gencode.vM23.transcripts.fa.gz"
