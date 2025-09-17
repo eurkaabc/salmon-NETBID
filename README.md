@@ -1,5 +1,6 @@
 # Salmon-NETBID2 
 
+
 ## 📖 Introduction
 
 **Salmon** is a fast and efficient tool for transcript quantification from RNA-seq data.  
@@ -15,6 +16,7 @@ In this workflow, we assume that the **raw FASTQ files** are stored in:
 ```bash
 /mnt/sda/Public/Project/collabration/AoLab/20250821/rawdata
 ```
+
 ### 🧠 What is NetBID2?
 > **TL;DR:** NetBID2 infers *driver activity* (TFs & signaling proteins) from omics data by reverse-engineering context-specific networks—so you can find regulators that DE/mutation analyses miss.
 
@@ -37,7 +39,6 @@ In this workflow, we assume that the **raw FASTQ files** are stored in:
 - Driver activity matrices, **DE/DA** results, a **master table**, and rich plots explaining *which* regulators matter and *why*.
 ---
 
-<img width="658" height="428" alt="image" src="https://github.com/user-attachments/assets/9e9eaea0-eac8-4cab-96e9-2a3e18d32999" />
 
 ## ⚙️ Installation
 **1) Terminal (Salmon + SJARACNe)**
