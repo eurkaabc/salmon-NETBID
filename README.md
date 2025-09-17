@@ -223,7 +223,7 @@ After running this step, you should have:
 
 
 
-## 🗂️ Step 3. Prepare Files for R Analysis
+## 🗂️ Step 3.Prepare Files for R Analysis
 
 Once all samples have been quantified with Salmon, we need to organize the results into a format that can be easily imported into **R** (e.g., with `tximport` for NETBID2).
 
@@ -259,7 +259,7 @@ unzip -o quant.sf.zip
 
 
 
-**🧩Build tx2gene.csv mapping file**
+**🧩 Build tx2gene.csv mapping file**
 
 Depending on whether your quant.sf transcript IDs retain version numbers (e.g., ENSMUST00000193812.1) or not, generate a matching tx2gene.csv.
 
@@ -559,7 +559,7 @@ print(list.files(file.path(network.par$out.dir.SJAR, prj.name), recursive = TRUE
 
 ```
 
-## Step 5. Run SJARACNe for Network Inference (Server)
+## 🕸️ Step 5. Run SJARACNe for Network Inference (Server)
 
 We use **SJARACNe** to construct regulatory networks (TF network and signature network).
 **Run this on the server after Step 4** has produced: `input.exp`, `tf.txt`, `sig.txt`.\
@@ -622,7 +622,7 @@ ls -lh output_sig | grep -i consensus || echo "[ERR] SIG consensus missing"
 
 
 
-## Step 6. NetBID2 Hidden Driver Estimation
+## 🧭 Step 6. NetBID2 Hidden Driver Estimation
 **Tip**: set an environment variable once and forget about editing paths later:
 `export PROJECT_ROOT="/mnt/sda/Public/Project/collabration/AoLab/20250821"`
 ```bash
