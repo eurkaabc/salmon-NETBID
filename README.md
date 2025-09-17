@@ -32,7 +32,7 @@ conda install --channel bioconda salmon
 - [🧬 Step 1. Build Salmon Index](#-step-1-build-salmon-index)
 - [🔬 Step 2. Salmon Quantification (Batch, Paired-End)](#-step-2-salmon-quantification-batch-paired-end)
 - [🗂️ Step 3. Prepare Files for R Analysis](#-step-3-prepare-files-for-r-analysis)
-  - [🧩 Build tx2gene.csv mapping file](#-build-tx2genecsv-mapping-file)
+  - [🧩Build tx2gene.csv mapping file](#-build-tx2genecsv-mapping-file)
 - [🧠 Step 4. Load in R & Gene ID Mapping](#-step-4-load-in-r--gene-id-mapping)
 - [🕸️ Step 5. Run SJARACNe for Network Inference (Server)](#-step-5-run-sjaracne-for-network-inference-server)
 - [🧭 Step 6. NetBID2 Hidden Driver Estimation](#-step-6-netbid2-hidden-driver-estimation)
@@ -223,7 +223,7 @@ After running this step, you should have:
 
 
 
-## 🗂️ Step 3.Prepare Files for R Analysis
+## 🗂️ Step 3. Prepare Files for R Analysis
 
 Once all samples have been quantified with Salmon, we need to organize the results into a format that can be easily imported into **R** (e.g., with `tximport` for NETBID2).
 
