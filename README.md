@@ -27,7 +27,16 @@ Make sure you have conda installed, then install Salmon via Bioconda:
 conda install --channel bioconda salmon
 
 ```
-##
+## Table of Contents
+- [🧬 Step 1. Build Salmon Index](#-step-1-build-salmon-index)
+- [🔬 Step 2. Salmon Quantification (Batch, Paired-End)](#-step-2-salmon-quantification-batch-paired-end)
+- [🗂️ Step 3. Prepare Files for R Analysis](#-step-3-prepare-files-for-r-analysis)
+  - [🧩 Build tx2gene.csv mapping file](#-build-tx2genecsv-mapping-file)
+- [🧠 Step 4. Load in R & Gene ID Mapping](#-step-4-load-in-r--gene-id-mapping)
+- [🕸️ Step 5. Run SJARACNe for Network Inference (Server)](#-step-5-run-sjaracne-for-network-inference-server)
+- [🧭 Step 6. NetBID2 Hidden Driver Estimation](#-step-6-netbid2-hidden-driver-estimation)
+- [🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table](#-step-7-differential-expressionactivity-ko-vs-wt--master-table)
+- [🚀 Step 8. Advanced Analysis (Volcano, GSEA, Enrichment, Heatmaps & Network)](#-step-8-advanced-analysis-volcano-gsea-enrichment-heatmaps--network)
 
 ## 📂 Step 0. Organize FASTQ Files
 ```bash
@@ -35,7 +44,7 @@ mkdir -p "/mnt/sda/Public/Project/collabration/AoLab/20250821/1.data"
 find "/mnt/sda/Public/Project/collabration/AoLab/20250821/rawdata" -type f -name "*.fastq.gz" -exec cp -n {} "/mnt/sda/Public/Project/collabration/AoLab/20250821/1.data/" \;
 ```
 
-## 🧪 Step 1. Build Salmon Index
+## 🧬 Step 1. Build Salmon Index
 **Choose the index according to your species and annotation source:**
 <details> <summary><strong>Option A: Mouse GRCm38 (GENCODE vM23)</strong></summary>
 
@@ -115,7 +124,7 @@ salmon index \
 
 
 
-## 🧪 Step 2. Salmon Quantification (Batch, Paired-End)
+## 🔬 Step 2. Salmon Quantification (Batch, Paired-End)
 
 This step runs Salmon quantification across all paired-end FASTQ samples, producing per-sample `quant.sf` expression files and a summary table of mapping statistics.
 
@@ -213,7 +222,7 @@ After running this step, you should have:
 
 
 
-## 📊 Step 3. Prepare Files for R Analysis
+## 🗂️ Step 3. Prepare Files for R Analysis
 
 Once all samples have been quantified with Salmon, we need to organize the results into a format that can be easily imported into **R** (e.g., with `tximport` for NETBID2).
 
@@ -307,9 +316,9 @@ After this step, you should have:
 
 
 
-## 🔗 Step 4. Load in R & Gene ID Mapping
+## 🧠 Step 4. Load in R & Gene ID Mapping
 
-**Stage I: Load & Mapping**
+### Stage I: Load & Mapping
 ```bash
 # ---- Load necessary libraries ----
 suppressPackageStartupMessages({
@@ -408,7 +417,7 @@ cat("[OK] After mapping dims: ", paste(dim(eSet_expGene2), collapse=" x "), "\n"
 ```
 
 
-**Stage II: QC + Save**
+### Stage II: QC + Save
 ```bash
 # ---- Init parameter container ----
 network.par <- list()
@@ -444,7 +453,7 @@ NetBID.saveRData(network.par = network.par, step = "exp-load")
 
 ```
 
-**Stage III: Normalization**
+### Stage III: Normalization
 
 ```bash
 # ---- Extract expression matrix ----
@@ -502,7 +511,7 @@ pred_label <- draw.emb.kmeans(
 
 
 
-**Stage IV: Prepare SJARACNe input (Mouse)**
+### Stage IV: Prepare SJARACNe input (Mouse)
 ```bash
 
 # ---- 1) Load TF/SIG database (mouse) ----
@@ -1060,11 +1069,11 @@ draw.funcEnrich.cluster(
 
 **F) Bubble Plots (Targets of DA Drivers)**
 
-**Do**: bubbleplots of target gene-set enrichments per up/down drivers.
+- **Do**: bubbleplots of target gene-set enrichments per up/down drivers.
 
-**Need**: Ensembl↔symbol transfer table.
+- **Need**: Ensembl↔symbol transfer table.
 
-**Outputs**: 06_bubble/bubble_*_<COMP>.pdf.
+- **Outputs**: 06_bubble/bubble_*_<COMP>.pdf.
 
 ```bash
 transfer_tab <- get_IDtransfer2symbol2type(
@@ -1105,11 +1114,11 @@ draw.bubblePlot(
 
 **G) Deep-Dive a Selected Driver (GSEA + Subnetwork + Category)**
 
-**Do**: classic GSEA for one driver, starburst subnetwork, and KO/WT category plots.
+- **Do**: classic GSEA for one driver, starburst subnetwork, and KO/WT category plots.
 
-**Need**: `driver_list`, `DE`, `target_list`.
+- **Need**: `driver_list`, `DE`, `target_list`.
 
-**Outputs**: PDFs in `04_gsea_driver/`,` 07_network/`,` 08_category/`.
+- **Outputs**: PDFs in `04_gsea_driver/`,` 07_network/`,` 08_category/`.
 ```bash
 use_driver <- driver_list[1]   # pick the top one (or set manually)
 
