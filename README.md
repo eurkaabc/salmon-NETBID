@@ -1,4 +1,4 @@
-# Salmon-NETBID2 Workflow
+# Salmon-NETBID2 
 
 ## 📖 Introduction
 
@@ -15,19 +15,51 @@ In this workflow, we assume that the **raw FASTQ files** are stored in:
 ```bash
 /mnt/sda/Public/Project/collabration/AoLab/20250821/rawdata
 ```
+### 🧠 What is NetBID2?
+> **TL;DR:** NetBID2 infers *driver activity* (TFs & signaling proteins) from omics data by reverse-engineering context-specific networks—so you can find regulators that DE/mutation analyses miss.
 
+**NetBID2** (Network-based Bayesian Inference of Drivers, v2) is a systems-biology toolkit for **hidden driver** analysis. Many phenotype-causing regulators (e.g., kinases, TFs) are *not* obviously mutated or differentially expressed, so conventional mutation/DE pipelines overlook them. NetBID2:
+- **Reconstructs interactomes** (context-specific TF/SIG target networks).
+- **Estimates regulator activity** from **transcriptomics**, **proteomics**, or **phosphoproteomics**.
+- **Prioritizes candidate drivers** and links them to target gene programs.
+- Produces analysis-ready tables and visualizations (volcano, GSEA, bubble plots, TargetNet, category plots).
+
+**When to use it**
+- You suspect regulation is changing without large expression changes.
+- You want TF/SIG activity scores per sample and a ranked list of drivers.
+- You need network-aware interpretation and actionable hypotheses/targets.
+
+**What you provide**
+- Expression-like matrices (genes × samples) and group labels (e.g., KO vs WT).
+- A context-specific network (e.g., from SJARACNe) or let the workflow build one.
+
+**What you get**
+- Driver activity matrices, **DE/DA** results, a **master table**, and rich plots explaining *which* regulators matter and *why*.
 ---
 
 <img width="658" height="428" alt="image" src="https://github.com/user-attachments/assets/9e9eaea0-eac8-4cab-96e9-2a3e18d32999" />
 
 ## ⚙️ Installation
-
+**1) Terminal (Salmon + SJARACNe)**
 Make sure you have conda installed, then install Salmon via Bioconda:
 ```bash
 conda install --channel bioconda salmon
 
 ```
-## Table of Contents
+**2) R console (NetBID2 + deps)**
+```r
+install.packages(c("devtools","readr","dplyr","edgeR"))
+install.packages("BiocManager")
+BiocManager::install(c(
+  "SummarizedExperiment","Biobase","GEOquery","limma","impute","tximport",
+  "DESeq2","ConsensusClusterPlus","ComplexHeatmap","biomaRt","GSVA","rhdf5"
+))
+
+# NetBID2 (choose ONE)
+devtools::install_github("jyyulab/NetBID")              # latest
+# devtools::install_local("NetBID2_2.2.0.tar.gz")       # released tarball
+```
+
 ## Table of Contents
 - [🧬 Step 1. Build Salmon Index](#step-1)
 - [🔬 Step 2. Salmon Quantification (Batch, Paired-End)](#step-2)
@@ -621,9 +653,14 @@ ls -lh output_sig | grep -i consensus || echo "[ERR] SIG consensus missing"
 | `.../MyMouseProject/output_sig/consensus_*` | Consensus signature network edge list        |
 
 
-<img width="6256" height="4167" alt="image" src="https://github.com/user-attachments/assets/fea832e0-f2b2-42e2-a966-9d0be8072c86" />
-### 🗺️ NetBID2 Analysis Overview
+
+
+# 🗺️ NetBID2.0: Data-driven Network-based Bayesian Inference of Drivers
+
+
+
 *Covers Steps 6–8: activity estimation, DE/DA + master table, and downstream plots (Volcano, GSEA, Bubble, TargetNet, Category).*
+<img width="6256" height="4167" alt="image" src="https://github.com/user-attachments/assets/fea832e0-f2b2-42e2-a966-9d0be8072c86" />
 
 <a id="step-6"></a>
 ## 🧭 Step 6. NetBID2 Hidden Driver Estimation
