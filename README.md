@@ -16,6 +16,7 @@ In this workflow, we assume that the **raw FASTQ files** are stored in:
 ```bash
 /mnt/sda/Public/Project/collabration/AoLab/20250821/rawdata
 ```
+![Untitled](https://github.com/user-attachments/assets/8ec074e5-1d90-48b4-9b90-8df0420cb1d8)
 
 ### 🧠 What is NetBID2?
 > **TL;DR:** NetBID2 infers *driver activity* (TFs & signaling proteins) from omics data by reverse-engineering context-specific networks—so you can find regulators that DE/mutation analyses miss.
