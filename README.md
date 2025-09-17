@@ -29,22 +29,22 @@ conda install --channel bioconda salmon
 ```
 ## Table of Contents
 ## Table of Contents
-- [🧬 Step 1. Build Salmon Index](#-step-1-build-salmon-index)
-- [🔬 Step 2. Salmon Quantification (Batch, Paired-End)](#-step-2-salmon-quantification-batch-paired-end)
-- [🗂️ Step 3. Prepare Files for R Analysis](#-step-3-prepare-files-for-r-analysis)
-  - [🧩Build tx2gene.csv mapping file](#-build-tx2genecsv-mapping-file)
-- [🧠 Step 4. Load in R & Gene ID Mapping](#-step-4-load-in-r--gene-id-mapping)
-- [🕸️ Step 5. Run SJARACNe for Network Inference (Server)](#-step-5-run-sjaracne-for-network-inference-server)
-- [🧭 Step 6. NetBID2 Hidden Driver Estimation](#-step-6-netbid2-hidden-driver-estimation)
-- [🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table](#-step-7-differential-expressionactivity-ko-vs-wt--master-table)
-- [🚀 Step 8. Advanced Analysis (Volcano, GSEA, Enrichment, Heatmaps & Network)](#-step-8-advanced-analysis-volcano-gsea-enrichment-heatmaps--network)
+- [🧬 Step 1. Build Salmon Index](#step-1)
+- [🔬 Step 2. Salmon Quantification (Batch, Paired-End)](#step-2)
+- [🗂️ Step 3. Prepare Files for R Analysis](#step-3)
+  - [🧩 Build tx2gene.csv mapping file](#build-tx2gene)   <!-- 可选，见下 -->
+- [🧠 Step 4. Load in R & Gene ID Mapping](#step-4)
+- [🕸️ Step 5. Run SJARACNe for Network Inference (Server)](#step-5)
+- [🧭 Step 6. NetBID2 Hidden Driver Estimation](#step-6)
+- [🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table](#step-7)
+- [🚀 Step 8. Advanced Analysis (Volcano, GSEA, Enrichment, Heatmaps & Network)](#step-8)
 
 ## 📂 Step 0. Organize FASTQ Files
 ```bash
 mkdir -p "/mnt/sda/Public/Project/collabration/AoLab/20250821/1.data"
 find "/mnt/sda/Public/Project/collabration/AoLab/20250821/rawdata" -type f -name "*.fastq.gz" -exec cp -n {} "/mnt/sda/Public/Project/collabration/AoLab/20250821/1.data/" \;
 ```
-
+<a id="step-1"></a>
 ## 🧬 Step 1. Build Salmon Index
 **Choose the index according to your species and annotation source:**
 <details> <summary><strong>Option A: Mouse GRCm38 (GENCODE vM23)</strong></summary>
@@ -124,7 +124,7 @@ salmon index \
 
 
 
-
+<a id="step-2"></a>
 ## 🔬 Step 2. Salmon Quantification (Batch, Paired-End)
 
 This step runs Salmon quantification across all paired-end FASTQ samples, producing per-sample `quant.sf` expression files and a summary table of mapping statistics.
@@ -222,7 +222,7 @@ After running this step, you should have:
 | `2.salmon/percent_mapped_summary.tsv`      | Summary table (sample name, mapping %, counts, etc.)|
 
 
-
+<a id="step-3"></a>
 ## 🗂️ Step 3. Prepare Files for R Analysis
 
 Once all samples have been quantified with Salmon, we need to organize the results into a format that can be easily imported into **R** (e.g., with `tximport` for NETBID2).
@@ -316,7 +316,7 @@ After this step, you should have:
 
 
 
-
+<a id="step-4"></a>
 ## 🧠 Step 4. Load in R & Gene ID Mapping
 
 ### Stage I: Load & Mapping
@@ -558,7 +558,7 @@ print(file.path(network.par$out.dir.SJAR, prj.name))
 print(list.files(file.path(network.par$out.dir.SJAR, prj.name), recursive = TRUE))
 
 ```
-
+<a id="step-5"></a>
 ## 🕸️ Step 5. Run SJARACNe for Network Inference (Server)
 
 We use **SJARACNe** to construct regulatory networks (TF network and signature network).
@@ -621,7 +621,7 @@ ls -lh output_sig | grep -i consensus || echo "[ERR] SIG consensus missing"
 | `.../MyMouseProject/output_sig/consensus_*` | Consensus signature network edge list        |
 
 
-
+<a id="step-6"></a>
 ## 🧭 Step 6. NetBID2 Hidden Driver Estimation
 **Tip**: set an environment variable once and forget about editing paths later:
 `export PROJECT_ROOT="/mnt/sda/Public/Project/collabration/AoLab/20250821"`
@@ -743,7 +743,7 @@ NetBID.saveRData(analysis.par = analysis.par, step = "act-get")
 
 <img width="6256" height="4167" alt="image" src="https://github.com/user-attachments/assets/fea832e0-f2b2-42e2-a966-9d0be8072c86" />
 
-
+<a id="step-7"></a>
 ## 🧮 Step 7. Differential Expression/Activity (KO vs WT) & Master Table
 
 **Input objects**: uses `analysis.par$cal.eset`（expression）and `analysis.par$merge.ac.eset` (activity) from the previous step.
@@ -866,7 +866,7 @@ cat("\n==== Step 7 completed (KO vs WT) ====\n",
 
 ```
 
-
+<a id="step-8"></a>
 ## 🚀 Step 8. Advanced Analysis (Volcano, GSEA, Enrichment, Heatmaps & Network)
 This section assumes you have completed **Step 7** and saved **analysis.par** at the ms-tab stage.
 
