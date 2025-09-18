@@ -6,13 +6,19 @@
 **Salmon** is a fast and efficient tool for transcript quantification from RNA-seq data.  
 It requires a set of target transcripts (either from a reference genome annotation or from a de-novo assembly) to quantify.  
 
+**🌟 Advantages of Salmon**
+- **Accounts for isoform usage**: Considers changes in gene length across samples (e.g., different isoform usage).
+- **Fast and lightweight**: High speed with low computational and storage requirements.
+- **High sensitivity**: Does not discard reads mapping to multiple homologous gene regions.
+- **GC-bias correction**: Automatically corrects for GC-content bias during quantification.
+- **Automatic library type detection**: Infers sequencing library type without manual input.
+
 To run **Salmon**, you will need:  
-- A FASTA file containing the reference transcripts  
-- One or more FASTA/FASTQ files containing the RNA-seq reads  
+- A **FASTA** file containing the reference transcripts.
+- One or more **FASTQ files** containing the RNA-seq reads.  
+- (Optional) Pre-computed alignments (**SAM/BAM files**) to the transcripts.
 
-Optionally, Salmon can also make use of pre-computed alignments (SAM/BAM files) to the transcripts instead of raw reads.
-
-In this workflow, we assume that the **raw FASTQ files** are stored in:  
+In this workflow, we assume that the **raw FASTQ files** are stored in:
 ```bash
 /mnt/sda/Public/Project/collabration/AoLab/20250821/rawdata
 ```
